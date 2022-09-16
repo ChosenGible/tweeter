@@ -13,7 +13,7 @@ import androidx.fragment.app.Fragment;
 import edu.byu.cs.client.R;
 import edu.byu.cs.tweeter.client.view.main.MainActivity;
 import edu.byu.cs.tweeter.model.domain.User;
-import presenter.LoginPresenter;
+import edu.byu.cs.tweeter.client.presenter.LoginPresenter;
 
 /**
  * Implements the login screen.
@@ -60,7 +60,7 @@ public class LoginFragment extends Fragment implements LoginPresenter.LoginView 
         return view;
     }
 
-    // methods that presenter can call on view
+    // methods that edu.byu.cs.tweeter.client.presenter can call on view
     @Override
     public void displayErrorMessage(String message) {
         errorView.setText(message);
