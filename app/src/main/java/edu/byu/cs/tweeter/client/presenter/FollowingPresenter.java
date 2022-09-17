@@ -5,11 +5,11 @@ import android.util.Log;
 import java.util.List;
 
 import edu.byu.cs.tweeter.client.service.FollowService;
+import edu.byu.cs.tweeter.client.service.UserService;
 import edu.byu.cs.tweeter.model.domain.AuthToken;
-import edu.byu.cs.tweeter.model.domain.Follow;
 import edu.byu.cs.tweeter.model.domain.User;
 
-public class FollowingPresenter implements FollowService.GetFollowingObserver {
+public class FollowingPresenter implements FollowService.GetFollowObserver, UserService.GetUserObserver {
 
     private static final String LOG_TAG = "FollowingPresenter";
     public static final int PAGE_SIZE = 10;
@@ -52,10 +52,32 @@ public class FollowingPresenter implements FollowService.GetFollowingObserver {
         setLoading(false);
     }
 
+    @Override
+    public void handleGetUserSuccess(User user) {
+        view.displayMessage("Getting user's profile...");
+        view.navigateToUser(user);
+    }
+
+    @Override
+    public void handleGetUserFailed(String message) {
+        String errorMessage = "Open followee because of error: " + message;
+        Log.e(LOG_TAG, errorMessage);
+        view.displayErrorMessage(errorMessage);
+    }
+
+    @Override
+    public void handleGetUserThrewException(Exception e) {
+        String errorMessage = "Open followee because of exception: " + e.getMessage();
+        Log.e(LOG_TAG, errorMessage, e);
+        view.displayErrorMessage(errorMessage);
+    }
+
     public interface FollowingView{
         void setLoading(boolean value);
         void addItems(List<User> newUsers);
         void displayErrorMessage(String message);
+        void displayMessage(String message);
+        void navigateToUser(User user);
     }
 
     public FollowingPresenter(FollowingView view, User user, AuthToken authToken){
@@ -97,11 +119,15 @@ public class FollowingPresenter implements FollowService.GetFollowingObserver {
         }
     }
 
-    public void getFollowing(AuthToken authToken, User user, int limit, User lastFollowee) {
-        getFollowingSerivce().getFollowees(authToken, user, limit, lastFollowee, this);
+    public void onSelectFollowedUser(String alias){
+        new UserService().getUser(authToken, alias, this);
     }
 
-    public FollowService getFollowingSerivce(){
+    public void getFollowing(AuthToken authToken, User user, int limit, User lastFollowee) {
+        getFollowingService().getFollowees(authToken, user, limit, lastFollowee, this);
+    }
+
+    public FollowService getFollowingService(){
         return new FollowService();
     }
 }

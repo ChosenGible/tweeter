@@ -83,6 +83,18 @@ public class FollowingFragment extends Fragment implements FollowingPresenter.Fo
     }
 
     @Override
+    public void displayMessage(String message) {
+        Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void navigateToUser(User user) {
+        Intent intent = new Intent(getContext(), MainActivity.class);
+        intent.putExtra(MainActivity.CURRENT_USER_KEY, user);
+        startActivity(intent);
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_following, container, false);
@@ -132,7 +144,8 @@ public class FollowingFragment extends Fragment implements FollowingPresenter.Fo
                 itemView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        Toast.makeText(getContext(), "You selected '" + userName.getText() + "'.", Toast.LENGTH_LONG).show();
+                        String dummy = userAlias.getText().toString();
+                        presenter.onSelectFollowedUser(dummy);
                     }
                 });
             }
@@ -153,29 +166,6 @@ public class FollowingFragment extends Fragment implements FollowingPresenter.Fo
             userName.setText(user.getName());
             Picasso.get().load(user.getImageUrl()).into(userImage);
         }
-
-        /**
-         * Message handler (i.e., observer) for GetUserTask.
-         */
-        private class GetUserHandler extends Handler {
-            @Override
-            public void handleMessage(@NonNull Message msg) {
-                boolean success = msg.getData().getBoolean(GetUserTask.SUCCESS_KEY);
-                if (success) {
-                    User user = (User) msg.getData().getSerializable(GetUserTask.USER_KEY);
-
-                    Intent intent = new Intent(getContext(), MainActivity.class);
-                    intent.putExtra(MainActivity.CURRENT_USER_KEY, user);
-                    startActivity(intent);
-                } else if (msg.getData().containsKey(GetUserTask.MESSAGE_KEY)) {
-                    String message = msg.getData().getString(GetUserTask.MESSAGE_KEY);
-                    Toast.makeText(getContext(), "Failed to get user's profile: " + message, Toast.LENGTH_LONG).show();
-                } else if (msg.getData().containsKey(GetUserTask.EXCEPTION_KEY)) {
-                    Exception ex = (Exception) msg.getData().getSerializable(GetUserTask.EXCEPTION_KEY);
-                    Toast.makeText(getContext(), "Failed to get user's profile because of exception: " + ex.getMessage(), Toast.LENGTH_LONG).show();
-                }
-            }
-        }
     }
 
     /**
@@ -185,9 +175,6 @@ public class FollowingFragment extends Fragment implements FollowingPresenter.Fo
 
         private final List<User> users = new ArrayList<>();
 
-        private User lastFollowee; // goes in presenter
-
-        private boolean hasMorePages; // goes in presenter
         private boolean isLoading = false;
 
         void setLoading(boolean value){
@@ -310,34 +297,6 @@ public class FollowingFragment extends Fragment implements FollowingPresenter.Fo
          */
         private void removeLoadingFooter() {
             removeItem(users.get(users.size() - 1));
-        }
-
-
-        /**
-         * Message handler (i.e., observer) for GetFollowingTask.
-         */
-        private class GetFollowingHandler extends Handler {
-            @Override
-            public void handleMessage(@NonNull Message msg) {
-                isLoading = false;
-                removeLoadingFooter();
-
-                boolean success = msg.getData().getBoolean(GetFollowingTask.SUCCESS_KEY);
-                if (success) {
-                    List<User> followees = (List<User>) msg.getData().getSerializable(GetFollowingTask.FOLLOWEES_KEY);
-                    hasMorePages = msg.getData().getBoolean(GetFollowingTask.MORE_PAGES_KEY);
-
-                    lastFollowee = (followees.size() > 0) ? followees.get(followees.size() - 1) : null;
-
-                    followingRecyclerViewAdapter.addItems(followees);
-                } else if (msg.getData().containsKey(GetFollowingTask.MESSAGE_KEY)) {
-                    String message = msg.getData().getString(GetFollowingTask.MESSAGE_KEY);
-                    Toast.makeText(getContext(), "Failed to get following: " + message, Toast.LENGTH_LONG).show();
-                } else if (msg.getData().containsKey(GetFollowingTask.EXCEPTION_KEY)) {
-                    Exception ex = (Exception) msg.getData().getSerializable(GetFollowingTask.EXCEPTION_KEY);
-                    Toast.makeText(getContext(), "Failed to get following because of exception: " + ex.getMessage(), Toast.LENGTH_LONG).show();
-                }
-            }
         }
     }
 

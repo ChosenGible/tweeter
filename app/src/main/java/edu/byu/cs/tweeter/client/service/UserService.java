@@ -8,6 +8,8 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import edu.byu.cs.tweeter.client.backgroundTask.GetUserTask;
 import edu.byu.cs.tweeter.client.backgroundTask.LoginTask;
 import edu.byu.cs.tweeter.client.backgroundTask.RegisterTask;
 import edu.byu.cs.tweeter.client.cache.Cache;
@@ -20,6 +22,12 @@ public class UserService {
         void handleLoginSuccess(User user, AuthToken token);
         void handleLoginFailed(String message);
         void handleLoginThrewException(Exception e);
+    }
+
+    public interface GetUserObserver {
+        void handleGetUserSuccess(User user);
+        void handleGetUserFailed(String message);
+        void handleGetUserThrewException(Exception e);
     }
 
     public void login(String username, String password, LoginObserver observer){
@@ -35,7 +43,11 @@ public class UserService {
         executor.execute(registerTask);
     }
 
-
+    public void getUser(AuthToken authToken, String alias, GetUserObserver observer){
+        GetUserTask getUserTask = new GetUserTask(authToken, alias, new GetUserHandler(observer));
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(getUserTask);
+    }
 
     /**
      * Message handler (i.e., observer) for LoginTask
@@ -64,6 +76,31 @@ public class UserService {
             } else if (msg.getData().containsKey(LoginTask.EXCEPTION_KEY)) {
                 Exception ex = (Exception) msg.getData().getSerializable(LoginTask.EXCEPTION_KEY);
                 observer.handleLoginThrewException(ex);
+            }
+        }
+    }
+
+    private class GetUserHandler extends Handler{
+        private GetUserObserver observer;
+
+        public GetUserHandler(GetUserObserver observer){
+            this.observer = observer;
+        }
+
+        @Override
+        public void handleMessage(@NonNull Message msg){
+            boolean success = msg.getData().getBoolean(GetUserTask.SUCCESS_KEY);
+            if (success) {
+                User user = (User) msg.getData().getSerializable(GetUserTask.USER_KEY);
+                observer.handleGetUserSuccess(user);
+            }
+            else if (msg.getData().containsKey(GetUserTask.MESSAGE_KEY)){
+                String message = msg.getData().getString(GetUserTask.MESSAGE_KEY);
+                observer.handleGetUserFailed(message);
+            }
+            else if (msg.getData().containsKey(GetUserTask.EXCEPTION_KEY)){
+                Exception ex = (Exception) msg.getData().getSerializable(GetUserTask.EXCEPTION_KEY);
+                observer.handleGetUserThrewException(ex);
             }
         }
     }
