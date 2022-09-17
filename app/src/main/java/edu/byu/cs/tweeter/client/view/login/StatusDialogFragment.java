@@ -3,6 +3,7 @@ package edu.byu.cs.tweeter.client.view.login;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -21,17 +22,18 @@ import java.util.Locale;
 
 import edu.byu.cs.client.R;
 import edu.byu.cs.tweeter.client.cache.Cache;
+import edu.byu.cs.tweeter.client.presenter.StatusDialogPresenter;
 
 /**
  * Implements the pop-up dialog for sending a new status.
  */
-public class StatusDialogFragment extends AppCompatDialogFragment {
+public class StatusDialogFragment extends AppCompatDialogFragment implements StatusDialogPresenter.StatusDialogView {
     private TextView fullName;
     private TextView alias;
     private ImageView image;
     private EditText post;
-    private Observer observer;
     private TextView wordCount;
+    private StatusDialogPresenter presenter;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -39,6 +41,7 @@ public class StatusDialogFragment extends AppCompatDialogFragment {
 
         LayoutInflater inflater = getActivity().getLayoutInflater();
         View view = inflater.inflate(R.layout.status_dialog, null);
+        presenter = new StatusDialogPresenter(this);
 
         builder.setView(view)
                 .setNegativeButton("Close", new DialogInterface.OnClickListener() {
@@ -50,7 +53,8 @@ public class StatusDialogFragment extends AppCompatDialogFragment {
                 .setPositiveButton("POST STATUS", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        observer.onStatusPosted(post.getText().toString());
+                        //service
+                        presenter.sendNewStatus(post.getText().toString());
                     }
                 });
 
@@ -73,7 +77,7 @@ public class StatusDialogFragment extends AppCompatDialogFragment {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                wordCount.setText(String.format(Locale.US, "%d / %d", s.length(), 250));
+                presenter.updateWordCount(s.toString());
             }
 
             @Override
@@ -91,15 +95,36 @@ public class StatusDialogFragment extends AppCompatDialogFragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        try {
-            observer = (Observer) context;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(context.toString() + " must implement the StatusDialogFragment.Observer");
-        }
+        presenter.addStatusObserver(context);
     }
 
-    public interface Observer {
-        void onStatusPosted(String post);
+    @Override
+    public void displayFullName(String name) {
+
     }
 
+    @Override
+    public void displayAlias(String alias) {
+
+    }
+
+    @Override
+    public void displayImage(Uri image) {
+
+    }
+
+    @Override
+    public void displayPost(String postText) {
+
+    }
+
+    @Override
+    public void fetchPostText() {
+
+    }
+
+    @Override
+    public void updateWordCount(int numWords) {
+        wordCount.setText(Integer.toString(numWords));
+    }
 }
