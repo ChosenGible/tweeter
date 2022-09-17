@@ -41,7 +41,6 @@ public class StatusDialogFragment extends AppCompatDialogFragment implements Sta
 
         LayoutInflater inflater = getActivity().getLayoutInflater();
         View view = inflater.inflate(R.layout.status_dialog, null);
-        presenter = new StatusDialogPresenter(this);
 
         builder.setView(view)
                 .setNegativeButton("Close", new DialogInterface.OnClickListener() {
@@ -94,6 +93,7 @@ public class StatusDialogFragment extends AppCompatDialogFragment implements Sta
 
     @Override
     public void onAttach(Context context) {
+        presenter = new StatusDialogPresenter(this);
         super.onAttach(context);
         presenter.addStatusObserver(context);
     }
