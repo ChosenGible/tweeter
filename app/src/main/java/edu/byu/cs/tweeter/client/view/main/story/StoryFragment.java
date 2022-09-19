@@ -37,14 +37,16 @@ import edu.byu.cs.client.R;
 import edu.byu.cs.tweeter.client.backgroundTask.GetStoryTask;
 import edu.byu.cs.tweeter.client.backgroundTask.GetUserTask;
 import edu.byu.cs.tweeter.client.cache.Cache;
+import edu.byu.cs.tweeter.client.presenter.StoryPresenter;
 import edu.byu.cs.tweeter.client.view.main.MainActivity;
+import edu.byu.cs.tweeter.model.domain.AuthToken;
 import edu.byu.cs.tweeter.model.domain.Status;
 import edu.byu.cs.tweeter.model.domain.User;
 
 /**
  * Implements the "Story" tab.
  */
-public class StoryFragment extends Fragment {
+public class StoryFragment extends Fragment implements StoryPresenter.StoryView {
     private static final String LOG_TAG = "StoryFragment";
     private static final String USER_KEY = "UserKey";
 
@@ -53,6 +55,8 @@ public class StoryFragment extends Fragment {
 
     private static final int PAGE_SIZE = 10;
 
+    private StoryPresenter presenter;
+    //presenters also authtoken
     private User user;
 
     private StoryRecyclerViewAdapter storyRecyclerViewAdapter;
@@ -80,7 +84,10 @@ public class StoryFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_story, container, false);
 
         //noinspection ConstantConditions
-        user = (User) getArguments().getSerializable(USER_KEY);
+        User user = (User) getArguments().getSerializable(USER_KEY);
+        AuthToken authToken = Cache.getInstance().getCurrUserAuthToken();
+
+        presenter = new StoryPresenter(user, authToken, this);
 
         RecyclerView storyRecyclerView = view.findViewById(R.id.storyRecyclerView);
 

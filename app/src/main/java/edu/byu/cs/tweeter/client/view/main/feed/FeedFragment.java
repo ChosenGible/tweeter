@@ -54,8 +54,6 @@ public class FeedFragment extends Fragment implements FeedPresenter.FeedView {
     private static final int ITEM_VIEW = 1;
 
     private FeedPresenter presenter;
-    //presenter also authtoken
-    //private User user;
 
     private FeedRecyclerViewAdapter feedRecyclerViewAdapter;
 
