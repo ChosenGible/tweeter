@@ -39,7 +39,7 @@ public class FeedPresenter implements FeedService.FeedObserver, UserService.GetU
 
     @Override
     public void handleFailure(String message) {
-        String errorMessage = "Failed to retrieve followers: " + message;
+        String errorMessage = "Failed to retrieve feed: " + message;
         Log.e(LOG_TAG, errorMessage);
 
         isLoading = false;
@@ -50,7 +50,7 @@ public class FeedPresenter implements FeedService.FeedObserver, UserService.GetU
 
     @Override
     public void handleException(Exception ex) {
-        String errorMessage = "Failed to retrieve followers: " + ex.getMessage();
+        String errorMessage = "Failed to retrieve feed: " + ex.getMessage();
 
         Log.e(LOG_TAG, errorMessage);
         isLoading = false;
@@ -67,14 +67,14 @@ public class FeedPresenter implements FeedService.FeedObserver, UserService.GetU
 
     @Override
     public void handleGetUserFailed(String message) {
-        String errorMessage = "Open user because of error: " + message;
+        String errorMessage = "Unable to open user because of error: " + message;
         Log.e(LOG_TAG, errorMessage);
         view.displayMessage(errorMessage);
     }
 
     @Override
     public void handleGetUserThrewException(Exception e) {
-        String errorMessage = "Open user because of exception: " + e.getMessage();
+        String errorMessage = "Unable to open user because of exception: " + e.getMessage();
         Log.e(LOG_TAG, errorMessage, e);
         view.displayMessage(errorMessage);
     }

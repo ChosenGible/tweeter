@@ -57,7 +57,7 @@ public class StoryFragment extends Fragment implements StoryPresenter.StoryView 
 
     private StoryPresenter presenter;
     //presenters also authtoken
-    private User user;
+    //private User user;
 
     private StoryRecyclerViewAdapter storyRecyclerViewAdapter;
 
@@ -99,7 +99,37 @@ public class StoryFragment extends Fragment implements StoryPresenter.StoryView 
 
         storyRecyclerView.addOnScrollListener(new StoryRecyclerViewPaginationScrollListener(layoutManager));
 
+        presenter.loadMoreItems();
+
         return view;
+    }
+
+    @Override
+    public void addItems(List<Status> statuses) {
+        storyRecyclerViewAdapter.addItems(statuses);
+    }
+
+    @Override
+    public void setLoading(boolean value) {
+        storyRecyclerViewAdapter.setLoading(value);
+    }
+
+    @Override
+    public void displayMessage(String message) {
+        Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void navigateToUser(User user) {
+        Intent intent = new Intent(getContext(), MainActivity.class);
+        intent.putExtra(MainActivity.CURRENT_USER_KEY, user);
+        startActivity(intent);
+    }
+
+    @Override
+    public void navigateToUri(Uri uri) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+        startActivity(intent);
     }
 
     /**
@@ -130,11 +160,8 @@ public class StoryFragment extends Fragment implements StoryPresenter.StoryView 
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    GetUserTask getUserTask = new GetUserTask(Cache.getInstance().getCurrUserAuthToken(),
-                            userAlias.getText().toString(), new GetUserHandler());
-                    ExecutorService executor = Executors.newSingleThreadExecutor();
-                    executor.execute(getUserTask);
-                    Toast.makeText(getContext(), "Getting user's profile...", Toast.LENGTH_LONG).show();
+                    String alias = userAlias.getText().toString();
+                    presenter.onSelectedUser(alias);
                 }
             });
         }
@@ -166,16 +193,7 @@ public class StoryFragment extends Fragment implements StoryPresenter.StoryView 
                         String clickable = s.subSequence(start, end).toString();
 
 
-                        if (clickable.contains("http")) {
-                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(clickable));
-                            startActivity(intent);
-                        } else {
-                            GetUserTask getUserTask = new GetUserTask(Cache.getInstance().getCurrUserAuthToken(),
-                                    clickable, new GetUserHandler());
-                            ExecutorService executor = Executors.newSingleThreadExecutor();
-                            executor.execute(getUserTask);
-                            Toast.makeText(getContext(), "Getting user's profile...", Toast.LENGTH_LONG).show();
-                        }
+                        presenter.onSelectedUser(clickable);
                     }
 
                     @Override
@@ -200,28 +218,6 @@ public class StoryFragment extends Fragment implements StoryPresenter.StoryView 
             post.setMovementMethod(LinkMovementMethod.getInstance());
         }
 
-        /**
-         * Message handler (i.e., observer) for GetUserTask.
-         */
-        private class GetUserHandler extends Handler {
-            @Override
-            public void handleMessage(@NonNull Message msg) {
-                boolean success = msg.getData().getBoolean(GetUserTask.SUCCESS_KEY);
-                if (success) {
-                    User user = (User) msg.getData().getSerializable(GetUserTask.USER_KEY);
-
-                    Intent intent = new Intent(getContext(), MainActivity.class);
-                    intent.putExtra(MainActivity.CURRENT_USER_KEY, user);
-                    startActivity(intent);
-                } else if (msg.getData().containsKey(GetUserTask.MESSAGE_KEY)) {
-                    String message = msg.getData().getString(GetUserTask.MESSAGE_KEY);
-                    Toast.makeText(getContext(), "Failed to get user's profile: " + message, Toast.LENGTH_LONG).show();
-                } else if (msg.getData().containsKey(GetUserTask.EXCEPTION_KEY)) {
-                    Exception ex = (Exception) msg.getData().getSerializable(GetUserTask.EXCEPTION_KEY);
-                    Toast.makeText(getContext(), "Failed to get user's profile because of exception: " + ex.getMessage(), Toast.LENGTH_LONG).show();
-                }
-            }
-        }
     }
 
     /**
@@ -230,16 +226,14 @@ public class StoryFragment extends Fragment implements StoryPresenter.StoryView 
     private class StoryRecyclerViewAdapter extends RecyclerView.Adapter<StoryHolder> {
 
         private final List<Status> story = new ArrayList<>();
-        private Status lastStatus;
 
-        private boolean hasMorePages;
-        private boolean isLoading = false;
-
-        /**
-         * Creates an instance and loads the first page of story data.
-         */
-        StoryRecyclerViewAdapter() {
-            loadMoreItems();
+        void setLoading(boolean value){
+            if (value){
+                addLoadingFooter();
+            }
+            else {
+                removeLoadingFooter();
+            }
         }
 
         /**
@@ -311,7 +305,7 @@ public class StoryFragment extends Fragment implements StoryPresenter.StoryView 
          */
         @Override
         public void onBindViewHolder(@NonNull StoryHolder storyHolder, int position) {
-            if (!isLoading) {
+            if (!presenter.isLoading()) {
                 storyHolder.bindStatus(story.get(position));
             }
         }
@@ -335,24 +329,9 @@ public class StoryFragment extends Fragment implements StoryPresenter.StoryView 
          */
         @Override
         public int getItemViewType(int position) {
-            return (position == story.size() - 1 && isLoading) ? LOADING_DATA_VIEW : ITEM_VIEW;
+            return (position == story.size() - 1 && presenter.isLoading()) ? LOADING_DATA_VIEW : ITEM_VIEW;
         }
 
-        /**
-         * Causes the Adapter to display a loading footer and make a request to get more story
-         * data.
-         */
-        void loadMoreItems() {
-            if (!isLoading) {   // This guard is important for avoiding a race condition in the scrolling code.
-                isLoading = true;
-                addLoadingFooter();
-
-                GetStoryTask getStoryTask = new GetStoryTask(Cache.getInstance().getCurrUserAuthToken(),
-                        user, PAGE_SIZE, lastStatus, new GetStoryHandler());
-                ExecutorService executor = Executors.newSingleThreadExecutor();
-                executor.execute(getStoryTask);
-            }
-        }
 
         /**
          * Adds a dummy status to the list of statuses so the RecyclerView will display a view (the
@@ -372,34 +351,6 @@ public class StoryFragment extends Fragment implements StoryPresenter.StoryView 
          */
         private void removeLoadingFooter() {
             removeItem(story.get(story.size() - 1));
-        }
-
-
-        /**
-         * Message handler (i.e., observer) for GetStoryTask.
-         */
-        private class GetStoryHandler extends Handler {
-            @Override
-            public void handleMessage(@NonNull Message msg) {
-                isLoading = false;
-                removeLoadingFooter();
-
-                boolean success = msg.getData().getBoolean(GetStoryTask.SUCCESS_KEY);
-                if (success) {
-                    List<Status> statuses = (List<Status>) msg.getData().getSerializable(GetStoryTask.STATUSES_KEY);
-                    hasMorePages = msg.getData().getBoolean(GetStoryTask.MORE_PAGES_KEY);
-
-                    lastStatus = (statuses.size() > 0) ? statuses.get(statuses.size() - 1) : null;
-
-                    storyRecyclerViewAdapter.addItems(statuses);
-                } else if (msg.getData().containsKey(GetStoryTask.MESSAGE_KEY)) {
-                    String message = msg.getData().getString(GetStoryTask.MESSAGE_KEY);
-                    Toast.makeText(getContext(), "Failed to get story: " + message, Toast.LENGTH_LONG).show();
-                } else if (msg.getData().containsKey(GetStoryTask.EXCEPTION_KEY)) {
-                    Exception ex = (Exception) msg.getData().getSerializable(GetStoryTask.EXCEPTION_KEY);
-                    Toast.makeText(getContext(), "Failed to get story because of exception: " + ex.getMessage(), Toast.LENGTH_LONG).show();
-                }
-            }
         }
     }
 
@@ -437,13 +388,13 @@ public class StoryFragment extends Fragment implements StoryPresenter.StoryView 
             int totalItemCount = layoutManager.getItemCount();
             int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
 
-            if (!storyRecyclerViewAdapter.isLoading && storyRecyclerViewAdapter.hasMorePages) {
+            if (!presenter.isLoading() && presenter.hasMorePages()) {
                 if ((visibleItemCount + firstVisibleItemPosition) >=
                         totalItemCount && firstVisibleItemPosition >= 0) {
                     // Run this code later on the UI thread
                     final Handler handler = new Handler(Looper.getMainLooper());
                     handler.postDelayed(() -> {
-                            storyRecyclerViewAdapter.loadMoreItems();
+                            presenter.loadMoreItems();
                     }, 0);
                 }
             }
