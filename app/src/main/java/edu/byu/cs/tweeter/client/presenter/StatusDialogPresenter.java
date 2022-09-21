@@ -2,17 +2,15 @@ package edu.byu.cs.tweeter.client.presenter;
 
 import android.net.Uri;
 
-import java.util.Locale;
-
-import edu.byu.cs.tweeter.client.service.NewStatusService;
+import edu.byu.cs.tweeter.client.service.StatusService;
 
 public class StatusDialogPresenter {
     private StatusDialogView view;
-    private NewStatusService newStatusService;
+    private StatusService newStatusService;
 
     public StatusDialogPresenter(StatusDialogView view){
         this.view = view;
-        newStatusService = new NewStatusService();
+        newStatusService = new StatusService();
     }
 
 
@@ -23,7 +21,7 @@ public class StatusDialogPresenter {
 
     public void addStatusObserver(Object observer){
         try {
-            newStatusService.AttachNewStatusObserver((NewStatusService.NewStatusObserver) observer);
+            newStatusService.AttachNewStatusObserver((StatusService.NewStatusObserver) observer);
         } catch (ClassCastException e) {
             throw new ClassCastException(observer.toString() + " must implement the NewStatusService.NewStatusObserver");
         }

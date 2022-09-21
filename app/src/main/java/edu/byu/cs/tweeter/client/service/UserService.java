@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 
 import edu.byu.cs.tweeter.client.backgroundTask.GetUserTask;
 import edu.byu.cs.tweeter.client.backgroundTask.LoginTask;
+import edu.byu.cs.tweeter.client.backgroundTask.LogoutTask;
 import edu.byu.cs.tweeter.client.backgroundTask.RegisterTask;
 import edu.byu.cs.tweeter.client.cache.Cache;
 import edu.byu.cs.tweeter.client.view.main.MainActivity;
@@ -24,6 +25,12 @@ public class UserService {
         void handleLoginThrewException(Exception e);
     }
 
+    public interface LogoutObserver {
+        void handleLogoutSuccess();
+        void handleLogoutFailure(String message);
+        void handleLogoutException(Exception ex);
+    }
+
     public interface GetUserObserver {
         void handleGetUserSuccess(User user);
         void handleGetUserFailed(String message);
@@ -35,6 +42,12 @@ public class UserService {
         LoginTask loginTask = new LoginTask(username, password, new LoginHandler(observer));
         ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.execute(loginTask);
+    }
+
+    public void logout(AuthToken authToken, LogoutObserver observer){
+        LogoutTask logoutTask = new LogoutTask(authToken, new LogoutHandler(observer));
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(logoutTask);
     }
 
     public void register(String firstname, String lastname, String alias, String password, String imageBytes, LoginObserver observer){
@@ -76,6 +89,27 @@ public class UserService {
             } else if (msg.getData().containsKey(LoginTask.EXCEPTION_KEY)) {
                 Exception ex = (Exception) msg.getData().getSerializable(LoginTask.EXCEPTION_KEY);
                 observer.handleLoginThrewException(ex);
+            }
+        }
+    }
+
+    private class LogoutHandler extends Handler {
+        private LogoutObserver observer;
+
+        public LogoutHandler(LogoutObserver observer){
+            this.observer = observer;
+        }
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            boolean success = msg.getData().getBoolean(LogoutTask.SUCCESS_KEY);
+            if (success) {
+                observer.handleLogoutSuccess();
+            } else if (msg.getData().containsKey(LogoutTask.MESSAGE_KEY)) {
+                String message = msg.getData().getString(LogoutTask.MESSAGE_KEY);
+                observer.handleLogoutFailure(message);
+            } else if (msg.getData().containsKey(LogoutTask.EXCEPTION_KEY)) {
+                Exception ex = (Exception) msg.getData().getSerializable(LogoutTask.EXCEPTION_KEY);
+                observer.handleLogoutException(ex);
             }
         }
     }
