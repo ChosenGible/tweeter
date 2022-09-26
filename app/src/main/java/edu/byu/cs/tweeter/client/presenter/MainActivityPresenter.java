@@ -79,7 +79,7 @@ public class MainActivityPresenter implements StatusService.NewStatusObserver, S
     @Override
     public void handleUnfollowSuccess() {
         updateSelectedUserFollowingAndFollowers();
-        view.updateFollowButton(true);
+        view.updateFollowButton(false);
         view.setFollowButtonEnabled(true);
     }
 
@@ -100,7 +100,7 @@ public class MainActivityPresenter implements StatusService.NewStatusObserver, S
     @Override
     public void handleFollowSuccess() {
         updateSelectedUserFollowingAndFollowers();
-        view.updateFollowButton(false);
+        view.updateFollowButton(true);
         view.setFollowButtonEnabled(true);
     }
 
@@ -275,7 +275,7 @@ public class MainActivityPresenter implements StatusService.NewStatusObserver, S
         } else {
             view.setFollowButtonVisibility(true);
 
-            new FollowService().isFollower(authToken, Cache.getInstance().getCurrUser(), user, this);
+            new FollowService().isFollower(authToken, user, Cache.getInstance().getCurrUser(), this);
         }
     }
 

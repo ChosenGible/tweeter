@@ -80,6 +80,8 @@ public class FollowService {
 
     public void isFollower(AuthToken authToken, User currUser, User targetUser, IsFollowerObserver observer){
         IsFollowerTask isFollowerTask = new IsFollowerTask(authToken, currUser, targetUser, new IsFollowerHandler(observer));
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(isFollowerTask);
     }
 
     public void unfollow(AuthToken authToken, User targetUser, UnfollowObserver observer){
